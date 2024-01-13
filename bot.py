@@ -26,18 +26,8 @@ class Bot:
         # Find who's not doing anything and try to give them a job?
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
         if self._first_turn:
+            self.crewmate_dispatcher(actions, my_ship)
             
-            actions.append(CrewMoveAction(idle_crewmates[0].id, my_ship.stations.helms[0].gridPosition))
-            actions.append(CrewMoveAction(idle_crewmates[1].id, my_ship.stations.shields[0].gridPosition))
-            emp_turrets = [turret for turret in station_list.turrets if turret.turretType is TurretType.EMP]
-            normal_turret = [turret for turret in station_list.turrets if turret.turretType is TurretType.Normal]
-            #if emp_turrets:
-            #    actions.append(CrewMoveAction(idle_crewmates[2].id, emp_turrets[0].gridPosition))
-            if normal_turret:
-                actions.append(CrewMoveAction(idle_crewmates[2].id, normal_turret[0].gridPosition))
-            else:
-                actions.append(CrewMoveAction(idle_crewmates[2].id, my_ship.stations.turrets[0].gridPosition))    
-            actions.append(CrewMoveAction(idle_crewmates[3].id, my_ship.stations.radars[0].gridPosition))
         print(self._target_ship)
         self.turret_actions(game_message, my_ship, actions)
         #self.helm_actions(actions, my_ship)
@@ -71,3 +61,16 @@ class Bot:
                  actions.append(TurretChargeAction(turret_station.id))
             else:
                  actions.append(TurretShootAction(turret_station.id))
+
+    def crewmate_dispatcher(self, actions, my_ship):
+        actions.append(CrewMoveAction(idle_crewmates[0].id, my_ship.stations.helms[0].gridPosition))
+        actions.append(CrewMoveAction(idle_crewmates[1].id, my_ship.stations.shields[0].gridPosition))
+        emp_turrets = [turret for turret in station_list.turrets if turret.turretType is TurretType.EMP]
+        normal_turret = [turret for turret in station_list.turrets if turret.turretType is TurretType.Normal]
+        #if emp_turrets:
+        #    actions.append(CrewMoveAction(idle_crewmates[2].id, emp_turrets[0].gridPosition))
+        if normal_turret:
+            actions.append(CrewMoveAction(idle_crewmates[2].id, normal_turret[0].gridPosition))
+        else:
+            actions.append(CrewMoveAction(idle_crewmates[2].id, my_ship.stations.turrets[0].gridPosition))    
+        actions.append(CrewMoveAction(idle_crewmates[3].id, my_ship.stations.radars[0].gridPosition))
