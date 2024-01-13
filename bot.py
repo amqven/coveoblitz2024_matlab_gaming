@@ -130,17 +130,14 @@ class Bot:
                 else:
                     if pos_enemy.x > pos_ship.x:
                         if pos_enemy.y > pos_ship.y:
-                            self.positions_enemies.append((math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
+                            self.positions_enemies.append(
+                                (math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
                         else:
                             self.positions_enemies.append(
-                                (360 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x)), id)
+                                (360 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
                     else:
-                        if pos_enemy.y > pos_ship.y:
-                            self.positions_enemies.append((
-                                180 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x)), id)
-                        else:
-                            self.positions_enemies.append((
-                                180 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
+                        self.positions_enemies.append((
+                            180 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
 
     def cannon_a_rotate(self, my_ship):
         for angles in self.positions_enemies:
