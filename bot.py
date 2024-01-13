@@ -102,6 +102,7 @@ class Bot:
                     else:
                         meteors = filter(lambda d: d.debrisType == DebrisType.Large, game_message.debris)
                         meteors = sorted(meteors, lambda m: math.exp2(my_ship.worldPosition.x - m.position.x) + math.exp2(my_ship.worldPosition.y - m.position.y))
+
                         max_charge *= 0.1
                         if len(meteors) >= 0:
                             actions.append(TurretLookAtAction(turret_station.id, meteors[0].position))
