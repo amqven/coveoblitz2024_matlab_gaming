@@ -1,6 +1,7 @@
 from game_message import *
 from actions import *
 import random
+from enemy_ships import EnemyShip
 
 class Bot:
     def __init__(self):
@@ -8,6 +9,8 @@ class Bot:
         self._first_turn = True
         self._target_ship = None
         self._turret_target = False
+        self._dead_counter = 0
+        self._enemies = []
 
 
     def get_next_move(self, game_message: GameMessage):
@@ -18,15 +21,17 @@ class Bot:
         team_id = game_message.currentTeamId
         my_ship = game_message.ships.get(team_id)
         other_ships_ids = [shipId for shipId in game_message.shipsPositions.keys() if shipId != team_id]
-        self._target_ship = game_message.shipsPositions[random.choice(other_ships_ids)]
-        print("targets", game_message.shipsPositions)
-
+        
+        
         station_list = my_ship.stations
 
         # Find who's not doing anything and try to give them a job?
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
         if self._first_turn:
+            for other_ship in other_ships_ids:
+                self._enemies.append(EnemyShip(other_ship, game_message.shipsPositions[other_ship]))
             
+            self._target_ship = self._enemies[0]
             actions.append(CrewMoveAction(idle_crewmates[0].id, my_ship.stations.helms[0].gridPosition))
             actions.append(CrewMoveAction(idle_crewmates[1].id, my_ship.stations.shields[0].gridPosition))
             emp_turrets = [turret for turret in station_list.turrets if turret.turretType is TurretType.EMP]
@@ -38,20 +43,23 @@ class Bot:
             else:
                 actions.append(CrewMoveAction(idle_crewmates[2].id, my_ship.stations.turrets[0].gridPosition))    
             actions.append(CrewMoveAction(idle_crewmates[3].id, my_ship.stations.radars[0].gridPosition))
-        print(self._target_ship)
+
+        if game_message.ships.get(self._target_ship.id) and game_message.ships.get(self._target_ship.id).currentHealth <= 0:
+            self._dead_counter += 1
+            self._target_ship = self._enemies[self._dead_counter]
+
         self.turret_actions(game_message, my_ship, actions)
         #self.helm_actions(actions, my_ship)
 
         self.radar_actions(actions, my_ship, other_ships_ids)
 
-        # You can clearly do better than the random actions above! Have fun!
         self._first_turn = False
         return actions
 
     def radar_actions(self, actions, my_ship, other_ships_ids):
         operatedRadarStation = [station for station in my_ship.stations.radars if station.operator is not None]
         for radar_station in operatedRadarStation:
-            actions.append(RadarScanAction(radar_station.id, random.choice(other_ships_ids)))
+            actions.append(RadarScanAction(radar_station.id, self._target_ship))
 
     def helm_actions(self, actions, my_ship):
         operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
@@ -63,7 +71,7 @@ class Bot:
         operatedTurretStations = [station for station in my_ship.stations.turrets if station.operator is not None]
         for turret_station in operatedTurretStations:
             if not self._turret_target:
-                actions.append(TurretLookAtAction(turret_station.id, self._target_ship))
+                actions.append(TurretLookAtAction(turret_station.id, self._target_ship.position))
                 self._turret_target = True
                 continue
             max_charge = game_message.constants.ship.stations.turretInfos.get(turret_station.turretType).maxCharge
@@ -71,3 +79,7 @@ class Bot:
                  actions.append(TurretChargeAction(turret_station.id))
             else:
                  actions.append(TurretShootAction(turret_station.id))
+
+class TurretControl:
+    def __init__(self) -> None:
+        pass
