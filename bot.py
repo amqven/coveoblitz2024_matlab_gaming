@@ -3,8 +3,13 @@ from actions import *
 import random
 from enemy_ships import EnemyShip
 
+import math
+
+
 class Bot:
     def __init__(self):
+        self.positions_enemies = []
+        self.turret_valide = []
         print("Initializing your super mega duper bot")
         self._first_turn = True
         self._target_ship = None
@@ -71,14 +76,24 @@ class Bot:
 
         operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
 
+        boolRotate = True
+        aiming_angle = 180
+
         if operatedHelmStation:
-            actions.append(ShipLookAtAction(current_rotation_target))
+            if boolRotate:
+                if ((ship_angle <= (aiming_angle-2)) or (ship_angle >= (aiming_angle+2))):
+                    if aiming_angle > 180:
+                        actions.append(ShipRotateAction(180))
+                    elif aiming_angle <= 180:
+                        actions.append(ShipRotateAction(-180))
+
         
         if (ship_angle - self.last_angle) <= 1 and (ship_angle - self.last_angle) >= -1:
             self._ready_to_shoot = True
         else:
             self._ready_to_shoot = False
         self.last_angle = ship_angle
+
 
     def turret_actions(self, game_message: GameMessage, my_ship, actions):
         operatedTurretStations = [station for station in my_ship.stations.turrets if station.operator is not None]
@@ -112,3 +127,47 @@ class Bot:
     def getRotationTarget(self):
         return self.current_rotation_target
 
+
+
+    def turret_vise(self, my_ship):
+
+        i = 0
+        for turret in my_ship.stations.turrets:
+            for angle in self.positions_enemies:
+                self.turret_valide[i] = False
+                if angle == turret.orientationDegrees:
+                    self.turret_valide[i] = True
+            i += 1
+
+    def get_angles_enemis(self, game_message: GameMessage, my_ship):
+        pos_ship = my_ship.worldPosition
+
+        for id in game_message.ships.keys():
+            if game_message.currentTeamId is not id:
+                pos_enemy = game_message.ships.get(id).worldPosition
+                if pos_enemy.x == pos_ship.x:
+                    if pos_enemy.y > pos_ship.y:
+                        self.positions_enemies.append(90)
+                    else:
+                        self.positions_enemies.append(270)
+                elif pos_enemy.y == pos_ship.y:
+                    if pos_enemy.x > pos_ship.x:
+                        self.positions_enemies.append(0)
+                    else:
+                        self.positions_enemies.append(180)
+                else:
+                    if pos_enemy.x > pos_ship.x:
+                        if pos_enemy.y > pos_ship.y:
+                            self.positions_enemies.append(
+                                (math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
+                        else:
+                            self.positions_enemies.append(
+                                (360 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
+                    else:
+                        self.positions_enemies.append((
+                            180 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
+
+    def cannon_a_rotate(self, my_ship):
+        for angles in self.positions_enemies:
+            if self._target_ship.teamId == angles[1]:
+                return angles[0] - my_ship.stations.turrets[3].orientationDegrees
