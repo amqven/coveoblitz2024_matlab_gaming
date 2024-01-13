@@ -181,7 +181,7 @@ class Bot:
                     if (stations != []):
                         i = 0
                         try:
-                            while(stations[i].stationId in usedStations):
+                            while(stations[i].stationId in self.usedStations):
                                 i = i + 1
                         except:
                             continue
@@ -190,7 +190,7 @@ class Bot:
                             if turret.turretType not in [TurretType.Normal, TurretType.EMP]:
                                 self.cannon_orientation = turret.orientationDegrees
                         actions.append(CrewMoveAction(idle_crewmate.id, stations[i].stationPosition))
-                        usedStations.append(stations[i].stationId)
+                        self.usedStations.append(stations[i].stationId)
                         wantedStations.remove(wantedStation)
                         break
 
