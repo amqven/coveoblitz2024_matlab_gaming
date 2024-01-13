@@ -23,11 +23,9 @@ class Bot:
         self._target_ship = game_message.shipsPositions[random.choice(other_ships_ids)]
         # print("targets", game_message.shipsPositions)
 
-        station_list = my_ship.stations
-
         # Find who's not doing anything and try to give them a job?
         if self._first_turn:
-            self.crewmate_dispatcher(actions, my_ship, station_list)
+            self.crewmate_dispatcher(actions, my_ship)
             
         # print(self._target_ship)
         self.turret_actions(game_message, my_ship, actions)
@@ -63,8 +61,8 @@ class Bot:
             else:
                  actions.append(TurretShootAction(turret_station.id))
 
-    def crewmate_dispatcher(self, actions, my_ship, station_list):
-        wantedStations = ["helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
+    def crewmate_dispatcher(self, actions, my_ship):
+        wantedStations = ["turrets", "helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
         usedStations = []
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
         for idle_crewmate in idle_crewmates:
@@ -74,8 +72,11 @@ class Bot:
                 for field in fields:
                     if (getattr(availableStations, wantedStation) != []):
                         i = 0
-                        while(getattr(availableStations, wantedStation)[i].stationId in usedStations):
-                            i = i + 1
+                        try:
+                            while(getattr(availableStations, wantedStation)[i].stationId in usedStations):
+                                i = i + 1
+                        except:
+                            continue
                         actions.append(CrewMoveAction(idle_crewmate.id, getattr(availableStations, wantedStation)[i].stationPosition))
                         usedStations.append(getattr(availableStations, wantedStation)[i].stationId)
                         wantedStations.remove(wantedStation)
