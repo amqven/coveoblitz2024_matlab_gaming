@@ -1,9 +1,10 @@
+import game_message
 from game_message import *
 from actions import *
 import random
 import dataclasses
 import inspect
-from enemy_ships import EnemyShip
+
 import math
 
 class Bot:
@@ -140,32 +141,29 @@ class Bot:
         for id in game_message.ships.keys():
             if game_message.currentTeamId is not id:
                 pos_enemy = game_message.ships.get(id).worldPosition
-                if pos_enemy.x == pos_ship.x:
-                    if pos_enemy.y > pos_ship.y:
-                        self.positions_enemies.append(90)
-                    else:
-                        self.positions_enemies.append(270)
-                elif pos_enemy.y == pos_ship.y:
-                    if pos_enemy.x > pos_ship.x:
-                        self.positions_enemies.append(0)
-                    else:
-                        self.positions_enemies.append(180)
-                else:
-                    if pos_enemy.x > pos_ship.x:
-                        if pos_enemy.y > pos_ship.y:
-                            self.positions_enemies.append(
-                                (math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
-                        else:
-                            self.positions_enemies.append(
-                                (360 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
-                    else:
-                        self.positions_enemies.append((
-                            180 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
+                self.positions_enemies.append(
+                    (math.degrees(math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x)), id))
 
     def cannon_a_rotate(self, my_ship):
         for angles in self.positions_enemies:
             if self._target_ship.teamId == angles[1]:
                 return angles[0] - my_ship.stations.turrets[3].orientationDegrees
+
+
+    def debris_detect(self, my_ship, game_message: GameMessage):
+        #radius = game_message.constants.ship.stations.shield.shieldRadius
+        #coin_h_d = Vector(my_ship.worldPosition.x + radius, my_ship.worldPosition.y + radius)
+        #coin_h_g = Vector(my_ship.worldPosition.x - radius, my_ship.worldPosition.y + radius)
+        #coin_b_d = Vector(my_ship.worldPosition.x + radius, my_ship.worldPosition.y - radius)
+        #coin_b_g = Vector(my_ship.worldPosition.x - radius, my_ship.worldPosition.y - radius)
+        #for debris in game_message.debris:
+        #    if debris.debrisType is DebrisType.Large:
+        #        angle_projete = math.degrees(math.atan2(debris.velocity.y, debris.velocity.x))
+        #        angle_h_d = math.degrees(math.atan2(coin_h_d.y - debris.position.y, coin_h_d.x - debris.position.x))
+        #        angle_b_d = math.degrees(math.atan2())
+        for debris in game_message.debris:
+            if debris.debrisType is DebrisType.Large:
+                return debris.position
 
 
     def crewmate_dispatcher(self, actions, my_ship):
