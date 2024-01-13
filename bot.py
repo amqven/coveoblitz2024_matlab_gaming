@@ -17,6 +17,7 @@ class Bot:
         self._dead_counter = 0
         self._enemies = []
         self._ready_to_shoot = False
+        self.usedStations = []
 
         # helm attributes
         self.last_angle = 0
@@ -45,7 +46,7 @@ class Bot:
             self.crewmate_dispatcher(actions, my_ship)
 
         if game_message.ships.get(self._target_id):
-            print(game_message.ships.get(self._target_id))
+            # print(game_message.ships.get(self._target_id))
             if game_message.ships.get(self._target_id).currentHealth <= 100:
                 self.set_new_target(game_message)
 
@@ -54,6 +55,7 @@ class Bot:
 
         self.radar_actions(actions, my_ship, self.other_ships_ids)
 
+        # self.sendCrewmate2turret(TurretType.Normal, my_ship, 1, actions)
         self._first_turn = False
         return actions
 
@@ -162,10 +164,9 @@ class Bot:
     def crewmate_dispatcher(self, actions, my_ship):
         wantedStations = ["turrets", "helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
         wantedStations = wantedStations[::-1]
-        usedStations = []
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
         for idle_crewmate in idle_crewmates:
-            availableStations = self.getCrewmateAvailableStations(idle_crewmate)
+            availableStations = idle_crewmate.distanceFromStations
             fields = dataclasses.fields(availableStations)
             for wantedStation in wantedStations:
                 for field in fields:
@@ -182,14 +183,21 @@ class Bot:
                         wantedStations.remove(wantedStation)
                         break
 
-    def getCrewmateAvailableStations(self, crewmate):
-        availableStations = []
-        if (crewmate.distanceFromStations.turrets != []):
-            availableStations.append("turrets")
-        if (crewmate.distanceFromStations.shields != []):
-            availableStations.append("shields")
-        if (crewmate.distanceFromStations.radars != []):
-            availableStations.append("radars")
-        if (crewmate.distanceFromStations.helms != []):
-            availableStations.append("helms")
-        return crewmate.distanceFromStations
+    def sendCrewmate2turret(self, turretType, my_ship, numberOfCrewmateOnGun, actions):
+        idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is not None and crewmate.destination is None] #change to desired station to leave
+        TurretId = []
+        for turret in my_ship.stations.turrets:
+            if (turret.turretType == turretType and turret.operator == None):
+                TurretId.append(turret.id)
+
+        for idle_crewmate in idle_crewmates:
+            for turret in idle_crewmate.distanceFromStations.turrets:
+                if (turret.stationId in TurretId and turret.stationId in self.usedStations):
+                    try:
+                        TurretId.remove(turret.stationId)
+                    except:
+                        print("coucou")
+                    if (numberOfCrewmateOnGun != 0):
+                        actions.append(CrewMoveAction(idle_crewmate.id, turret.stationPosition))
+                        self.usedStations.append(turret.stationId)
+                        numberOfCrewmateOnGun -= 1
