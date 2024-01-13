@@ -1,3 +1,4 @@
+import game_message
 from game_message import *
 from actions import *
 import random
@@ -72,7 +73,7 @@ class Bot:
         operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
 
         boolRotate = False
-        aiming_angle = 180
+        aiming_angle = self.cannon_orientation
 
         if operatedHelmStation:
             if boolRotate:
@@ -81,7 +82,8 @@ class Bot:
                         actions.append(ShipRotateAction(180))
                     elif aiming_angle <= 180:
                         actions.append(ShipRotateAction(-180))
-            actions.append(ShipLookAtAction(self._target_ship))
+            else:
+                actions.append(ShipLookAtAction(self._target_ship))
 
         
         if (ship_angle - self.last_angle) <= 1 and (ship_angle - self.last_angle) >= -1:
@@ -95,12 +97,22 @@ class Bot:
         operatedTurretStations = [station for station in my_ship.stations.turrets if station.operator is not None]
         for turret_station in operatedTurretStations:
             max_charge = game_message.constants.ship.stations.turretInfos.get(turret_station.turretType).maxCharge
-            if self._ready_to_shoot:
+            if self._ready_to_shoot:              
                 if not self._turret_target:
-                    actions.append(TurretLookAtAction(turret_station.id, self._target_ship))
+                    if turret_station.turretType != TurretType.Normal:
+                        actions.append(TurretLookAtAction(turret_station.id, self._target_ship))
+                    else:
+                        meteors = filter(lambda d: d.debrisType == DebrisType.Large, game_message.debris)
+                        meteors = sorted(meteors, lambda m: math.exp2(my_ship.worldPosition.x - m.position.x) + math.exp2(my_ship.worldPosition.y - m.position.y))
+
+                        max_charge *= 0.1
+                        if len(meteors) >= 0:
+                            actions.append(TurretLookAtAction(turret_station.id, meteors[0].position))
+                        else:
+                            actions.append(TurretLookAtAction(turret_station.id, self._target_ship))
                     self._turret_target = True
                 else:
-                    if turret_station.charge <= 0.5*max_charge:
+                    if turret_station.charge <= 0.9*max_charge:
                         actions.append(TurretChargeAction(turret_station.id))
                     else:
                         actions.append(TurretShootAction(turret_station.id))
@@ -141,33 +153,13 @@ class Bot:
         for id in game_message.ships.keys():
             if game_message.currentTeamId is not id:
                 pos_enemy = game_message.ships.get(id).worldPosition
-                if pos_enemy.x == pos_ship.x:
-                    if pos_enemy.y > pos_ship.y:
-                        self.positions_enemies.append(90)
-                    else:
-                        self.positions_enemies.append(270)
-                elif pos_enemy.y == pos_ship.y:
-                    if pos_enemy.x > pos_ship.x:
-                        self.positions_enemies.append(0)
-                    else:
-                        self.positions_enemies.append(180)
-                else:
-                    if pos_enemy.x > pos_ship.x:
-                        if pos_enemy.y > pos_ship.y:
-                            self.positions_enemies.append(
-                                (math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
-                        else:
-                            self.positions_enemies.append(
-                                (360 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
-                    else:
-                        self.positions_enemies.append((
-                            180 + math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x), id))
+                self.positions_enemies.append(
+                    (math.degrees(math.atan2(pos_enemy.y - pos_ship.y, pos_enemy.x - pos_ship.x)), id))
 
     def cannon_a_rotate(self, my_ship):
         for angles in self.positions_enemies:
             if self._target_ship.teamId == angles[1]:
                 return angles[0] - my_ship.stations.turrets[3].orientationDegrees
-
 
     def crewmate_dispatcher(self, actions, my_ship):
         wantedStations = ["turrets", "helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
@@ -178,15 +170,16 @@ class Bot:
             fields = dataclasses.fields(availableStations)
             for wantedStation in wantedStations:
                 for field in fields:
-                    if (getattr(availableStations, wantedStation) != []):
+                    stations = getattr(availableStations, wantedStation)
+                    if (stations != []):
                         i = 0
                         try:
-                            while(getattr(availableStations, wantedStation)[i].stationId in self.usedStations):
+                            while(stations[i].stationId in usedStations):
                                 i = i + 1
                         except:
                             continue
-                        actions.append(CrewMoveAction(idle_crewmate.id, getattr(availableStations, wantedStation)[i].stationPosition))
-                        self.usedStations.append(getattr(availableStations, wantedStation)[i].stationId)
+                        actions.append(CrewMoveAction(idle_crewmate.id, stations[i].stationPosition))
+                        usedStations.append(stations[i].stationId)
                         wantedStations.remove(wantedStation)
                         break
 
