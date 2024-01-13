@@ -3,7 +3,6 @@ from actions import *
 import random
 import dataclasses
 import inspect
-from enemy_ships import EnemyShip
 import math
 
 class Bot:
@@ -71,7 +70,7 @@ class Bot:
         operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
 
         boolRotate = False
-        aiming_angle = 180
+        #aiming_angle = self.cannon_orientation
 
         if operatedHelmStation:
             if boolRotate:
@@ -80,7 +79,8 @@ class Bot:
                         actions.append(ShipRotateAction(180))
                     elif aiming_angle <= 180:
                         actions.append(ShipRotateAction(-180))
-            actions.append(ShipLookAtAction(self._target_ship))
+            else:
+                actions.append(ShipLookAtAction(self._target_ship))
 
         
         if (ship_angle - self.last_angle) <= 1 and (ship_angle - self.last_angle) >= -1:
@@ -94,12 +94,20 @@ class Bot:
         operatedTurretStations = [station for station in my_ship.stations.turrets if station.operator is not None]
         for turret_station in operatedTurretStations:
             max_charge = game_message.constants.ship.stations.turretInfos.get(turret_station.turretType).maxCharge
-            if self._ready_to_shoot:
+            if self._ready_to_shoot:              
                 if not self._turret_target:
-                    actions.append(TurretLookAtAction(turret_station.id, self._target_ship))
+                    if turret_station.turretType != TurretType.Normal:
+                        actions.append(TurretLookAtAction(turret_station.id, self._target_ship))
+                    else:
+                        meteors = filter(lambda d: d.debrisType == DebrisType.Large, game_message.debris)
+                        max_charge *= 0.1
+                        if len(meteors) >= 0:
+                            actions.append(TurretLookAtAction(turret_station.id, meteors[0].position))
+                        else:
+                            actions.append(TurretLookAtAction(turret_station.id, self._target_ship))
                     self._turret_target = True
                 else:
-                    if turret_station.charge <= 0.5*max_charge:
+                    if turret_station.charge <= 0.9*max_charge:
                         actions.append(TurretChargeAction(turret_station.id))
                     else:
                         actions.append(TurretShootAction(turret_station.id))
@@ -178,15 +186,16 @@ class Bot:
             fields = dataclasses.fields(availableStations)
             for wantedStation in wantedStations:
                 for field in fields:
-                    if (getattr(availableStations, wantedStation) != []):
+                    stations = getattr(availableStations, wantedStation)
+                    if (stations != []):
                         i = 0
                         try:
-                            while(getattr(availableStations, wantedStation)[i].stationId in usedStations):
+                            while(stations[i].stationId in usedStations):
                                 i = i + 1
                         except:
                             continue
-                        actions.append(CrewMoveAction(idle_crewmate.id, getattr(availableStations, wantedStation)[i].stationPosition))
-                        usedStations.append(getattr(availableStations, wantedStation)[i].stationId)
+                        actions.append(CrewMoveAction(idle_crewmate.id, stations[i].stationPosition))
+                        usedStations.append(stations[i].stationId)
                         wantedStations.remove(wantedStation)
                         break
 
