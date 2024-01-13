@@ -71,7 +71,7 @@ class Bot:
         operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
 
         boolRotate = False
-        #aiming_angle = self.cannon_orientation
+        aiming_angle = self.cannon_orientation
 
         if operatedHelmStation:
             if boolRotate:
@@ -101,6 +101,8 @@ class Bot:
                         actions.append(TurretLookAtAction(turret_station.id, self._target_ship))
                     else:
                         meteors = filter(lambda d: d.debrisType == DebrisType.Large, game_message.debris)
+                        meteors = sorted(meteors, lambda m: math.exp2(my_ship.worldPosition.x - m.position.x) + math.exp2(my_ship.worldPosition.y - m.position.y))
+
                         max_charge *= 0.1
                         if len(meteors) >= 0:
                             actions.append(TurretLookAtAction(turret_station.id, meteors[0].position))
@@ -156,23 +158,6 @@ class Bot:
         for angles in self.positions_enemies:
             if self._target_ship.teamId == angles[1]:
                 return angles[0] - my_ship.stations.turrets[3].orientationDegrees
-
-
-    def debris_detect(self, my_ship, game_message: GameMessage):
-        #radius = game_message.constants.ship.stations.shield.shieldRadius
-        #coin_h_d = Vector(my_ship.worldPosition.x + radius, my_ship.worldPosition.y + radius)
-        #coin_h_g = Vector(my_ship.worldPosition.x - radius, my_ship.worldPosition.y + radius)
-        #coin_b_d = Vector(my_ship.worldPosition.x + radius, my_ship.worldPosition.y - radius)
-        #coin_b_g = Vector(my_ship.worldPosition.x - radius, my_ship.worldPosition.y - radius)
-        #for debris in game_message.debris:
-        #    if debris.debrisType is DebrisType.Large:
-        #        angle_projete = math.degrees(math.atan2(debris.velocity.y, debris.velocity.x))
-        #        angle_h_d = math.degrees(math.atan2(coin_h_d.y - debris.position.y, coin_h_d.x - debris.position.x))
-        #        angle_b_d = math.degrees(math.atan2())
-        for debris in game_message.debris:
-            if debris.debrisType is DebrisType.Large:
-                return debris.position
-
 
     def crewmate_dispatcher(self, actions, my_ship):
         wantedStations = ["turrets", "helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
