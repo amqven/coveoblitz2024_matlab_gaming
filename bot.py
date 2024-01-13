@@ -66,11 +66,18 @@ class Bot:
 
         operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
 
-        if operatedHelmStation:
-            actions.append(ShipLookAtAction(current_rotation_target))
+        boolRotate = True
+        aiming_angle = 180
 
-    def turret_actions(self, game_message, my_ship, actions):
-            actions.append(ShipRotateAction(random.uniform(0, 360)))
+        if operatedHelmStation:
+
+            if boolRotate:
+                if ((ship_angle <= (aiming_angle-2)) or (ship_angle >= (aiming_angle+2))):
+                    if aiming_angle > 180:
+                        actions.append(ShipRotateAction(180))
+                    elif aiming_angle <= 180:
+                        actions.append(ShipRotateAction(-180))
+
 
     def turret_actions(self, game_message: GameMessage, my_ship, actions):
         # Now crew members at stations should do something!
