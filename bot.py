@@ -1,10 +1,10 @@
 from game_message import *
 from actions import *
 import random
+import dataclasses
+import inspect
 from enemy_ships import EnemyShip
-
 import math
-
 
 class Bot:
     def __init__(self):
@@ -42,19 +42,13 @@ class Bot:
             self.enemy_count = len(self.other_ships_ids)
             self._target_id = self.other_ships_ids[0]
             self._target_ship = game_message.shipsPositions[self.other_ships_ids[0]]
-            actions.append(CrewMoveAction(idle_crewmates[0].id, my_ship.stations.helms[0].gridPosition))
-            actions.append(CrewMoveAction(idle_crewmates[1].id, my_ship.stations.shields[0].gridPosition))
-            normal_turret = [turret for turret in station_list.turrets if turret.turretType is TurretType.Normal]
-            if normal_turret:
-                actions.append(CrewMoveAction(idle_crewmates[2].id, normal_turret[0].gridPosition))
-            else:
-                actions.append(CrewMoveAction(idle_crewmates[2].id, my_ship.stations.turrets[0].gridPosition))
-            actions.append(CrewMoveAction(idle_crewmates[3].id, my_ship.stations.radars[0].gridPosition))
+            self.crewmate_dispatcher(actions, my_ship)
 
         if game_message.ships.get(self._target_id):
             print(game_message.ships.get(self._target_id))
             if game_message.ships.get(self._target_id).currentHealth <= 100:
                 self.set_new_target(game_message)
+
         self.turret_actions(game_message, my_ship, actions)
         self.helm_actions(actions, my_ship)
 
@@ -171,3 +165,37 @@ class Bot:
         for angles in self.positions_enemies:
             if self._target_ship.teamId == angles[1]:
                 return angles[0] - my_ship.stations.turrets[3].orientationDegrees
+
+
+    def crewmate_dispatcher(self, actions, my_ship):
+        wantedStations = ["turrets", "helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
+        usedStations = []
+        idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
+        for idle_crewmate in idle_crewmates:
+            availableStations = self.getCrewmateAvailableStations(idle_crewmate)
+            fields = dataclasses.fields(availableStations)
+            for wantedStation in wantedStations:
+                for field in fields:
+                    if (getattr(availableStations, wantedStation) != []):
+                        i = 0
+                        try:
+                            while(getattr(availableStations, wantedStation)[i].stationId in usedStations):
+                                i = i + 1
+                        except:
+                            continue
+                        actions.append(CrewMoveAction(idle_crewmate.id, getattr(availableStations, wantedStation)[i].stationPosition))
+                        usedStations.append(getattr(availableStations, wantedStation)[i].stationId)
+                        wantedStations.remove(wantedStation)
+                        break
+
+    def getCrewmateAvailableStations(self, crewmate):
+        availableStations = []
+        if (crewmate.distanceFromStations.turrets != []):
+            availableStations.append("turrets")
+        if (crewmate.distanceFromStations.shields != []):
+            availableStations.append("shields")
+        if (crewmate.distanceFromStations.radars != []):
+            availableStations.append("radars")
+        if (crewmate.distanceFromStations.helms != []):
+            availableStations.append("helms")
+        return crewmate.distanceFromStations
