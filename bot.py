@@ -75,13 +75,9 @@ class Bot:
 
         operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
 
-<<<<<<< HEAD
-        
-=======
         boolRotate = False
         aiming_angle = self.cannon_orientation
 
->>>>>>> main
         if operatedHelmStation:
             if self.cannon_orientation is not None:
                 aim_direction = 360 - self.cannon_orientation
@@ -171,12 +167,8 @@ class Bot:
             if self._target_ship.teamId == angles[1]:
                 return angles[0] - my_ship.stations.turrets[3].orientationDegrees
 
-<<<<<<< HEAD
 
     def crewmate_dispatcher(self, actions, my_ship: Ship):
-=======
-    def crewmate_dispatcher(self, actions, my_ship):
->>>>>>> main
         wantedStations = ["turrets", "helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
         wantedStations = wantedStations[::-1]
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
