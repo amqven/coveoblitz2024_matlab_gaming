@@ -5,6 +5,7 @@ import random
 class Bot:
     def __init__(self):
         print("Initializing your super mega duper bot")
+        self._first_turn = True
 
 
     def get_next_move(self, game_message: GameMessage):
@@ -17,14 +18,37 @@ class Bot:
         my_ship = game_message.ships.get(team_id)
         other_ships_ids = [shipId for shipId in game_message.shipsPositions.keys() if shipId != team_id]
 
+        station_list = my_ship.stations
+        print("helms", station_list.helms)
         # Find who's not doing anything and try to give them a job?
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
+        if self._first_turn:
+            self._first_turn = False
 
-        for crewmate in idle_crewmates:
-            visitable_stations = crewmate.distanceFromStations.shields + crewmate.distanceFromStations.turrets + crewmate.distanceFromStations.helms + crewmate.distanceFromStations.radars
-            station_to_move_to = random.choice(visitable_stations)
-            actions.append(CrewMoveAction(crewmate.id, station_to_move_to.stationPosition))
+            actions.append(CrewMoveAction(idle_crewmates[0].id, my_ship.stations.helms[0].gridPosition))
+            actions.append(CrewMoveAction(idle_crewmates[1].id, my_ship.stations.shields[0].gridPosition))
+            actions.append(CrewMoveAction(idle_crewmates[2].id, my_ship.stations.turrets[0].gridPosition))
+            actions.append(CrewMoveAction(idle_crewmates[3].id, my_ship.stations.radars[0].gridPosition))
 
+        self.turret_actions(game_message, my_ship, actions)
+        self.helm_actions(actions, my_ship)
+
+        self.radar_actions(actions, my_ship, other_ships_ids)
+
+        # You can clearly do better than the random actions above! Have fun!
+        return actions
+
+    def radar_actions(self, actions, my_ship, other_ships_ids):
+        operatedRadarStation = [station for station in my_ship.stations.radars if station.operator is not None]
+        for radar_station in operatedRadarStation:
+            actions.append(RadarScanAction(radar_station.id, random.choice(other_ships_ids)))
+
+    def helm_actions(self, actions, my_ship):
+        operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
+        if operatedHelmStation:
+            actions.append(ShipRotateAction(random.uniform(0, 360)))
+    
+    def turret_actions(self, game_message, my_ship, actions):
         # Now crew members at stations should do something!
         operatedTurretStations = [station for station in my_ship.stations.turrets if station.operator is not None]
         for turret_station in operatedTurretStations:
@@ -40,14 +64,3 @@ class Bot:
             ]
 
             actions.append(random.choice(possible_actions))
-
-        operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
-        if operatedHelmStation:
-            actions.append(ShipRotateAction(random.uniform(0, 360)))
-
-        operatedRadarStation = [station for station in my_ship.stations.radars if station.operator is not None]
-        for radar_station in operatedRadarStation:
-            actions.append(RadarScanAction(radar_station.id, random.choice(other_ships_ids)))
-
-        # You can clearly do better than the random actions above! Have fun!
-        return actions
