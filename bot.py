@@ -24,6 +24,9 @@ class Bot:
         self.ship_direction = 0
         self.ship_angle = 0
         self.current_rotation_target = Vector(0, 0)
+        self.someone_on_emp = False
+        self.someone_on_normal = False
+        self.cannon_orientation = None
 
     def get_next_move(self, game_message: GameMessage):
         """
@@ -76,11 +79,12 @@ class Bot:
         aiming_angle = self.cannon_orientation
 
         if operatedHelmStation:
-            if boolRotate:
-                if ((ship_angle <= (aiming_angle-2)) or (ship_angle >= (aiming_angle+2))):
-                    if aiming_angle > 180:
+            if self.cannon_orientation is not None:
+                aim_direction = 360 - self.cannon_orientation
+                if ((ship_angle <= (aim_direction -2)) or (ship_angle >= (aim_direction +2))):
+                    if aim_direction  > 180:
                         actions.append(ShipRotateAction(180))
-                    elif aiming_angle <= 180:
+                    elif aim_direction  <= 180:
                         actions.append(ShipRotateAction(-180))
             else:
                 actions.append(ShipLookAtAction(self._target_ship))
@@ -112,10 +116,12 @@ class Bot:
                             actions.append(TurretLookAtAction(turret_station.id, self._target_ship))
                     self._turret_target = True
                 else:
-                    if turret_station.charge <= 0.9*max_charge:
+                    if turret_station.charge <= 0.5*max_charge:
                         actions.append(TurretChargeAction(turret_station.id))
                     else:
                         actions.append(TurretShootAction(turret_station.id))
+                    if turret_station.turretType == TurretType.Normal:
+                        self._turret_target = False
 
     def set_new_target(self, game_message):
         self._dead_counter += 1
@@ -161,7 +167,8 @@ class Bot:
             if self._target_ship.teamId == angles[1]:
                 return angles[0] - my_ship.stations.turrets[3].orientationDegrees
 
-    def crewmate_dispatcher(self, actions, my_ship):
+
+    def crewmate_dispatcher(self, actions, my_ship: Ship):
         wantedStations = ["turrets", "helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
         wantedStations = wantedStations[::-1]
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
@@ -174,12 +181,16 @@ class Bot:
                     if (stations != []):
                         i = 0
                         try:
-                            while(stations[i].stationId in usedStations):
+                            while(stations[i].stationId in self.usedStations):
                                 i = i + 1
                         except:
                             continue
+                        if wantedStation == "turrets":
+                            turret = [turret for turret in my_ship.stations.turrets if turret.id == stations[i].stationId][0]
+                            if turret.turretType not in [TurretType.Normal, TurretType.EMP]:
+                                self.cannon_orientation = turret.orientationDegrees
                         actions.append(CrewMoveAction(idle_crewmate.id, stations[i].stationPosition))
-                        usedStations.append(stations[i].stationId)
+                        self.usedStations.append(stations[i].stationId)
                         wantedStations.remove(wantedStation)
                         break
 
