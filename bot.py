@@ -70,7 +70,7 @@ class Bot:
 
         operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
 
-        boolRotate = True
+        boolRotate = False
         aiming_angle = 180
 
         if operatedHelmStation:
@@ -80,6 +80,7 @@ class Bot:
                         actions.append(ShipRotateAction(180))
                     elif aiming_angle <= 180:
                         actions.append(ShipRotateAction(-180))
+            actions.append(ShipLookAtAction(self._target_ship))
 
         
         if (ship_angle - self.last_angle) <= 1 and (ship_angle - self.last_angle) >= -1:
@@ -169,6 +170,7 @@ class Bot:
 
     def crewmate_dispatcher(self, actions, my_ship):
         wantedStations = ["turrets", "helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
+        wantedStations = wantedStations[::-1]
         usedStations = []
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
         for idle_crewmate in idle_crewmates:
