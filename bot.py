@@ -31,7 +31,6 @@ class Bot:
         
         station_list = my_ship.stations
 
-        # Find who's not doing anything and try to give them a job?
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
         if self._first_turn:
             self.other_ships_ids = [shipId for shipId in game_message.shipsPositions.keys() if shipId != team_id]
@@ -40,10 +39,7 @@ class Bot:
             self._target_ship = game_message.shipsPositions[self.other_ships_ids[0]]
             actions.append(CrewMoveAction(idle_crewmates[0].id, my_ship.stations.helms[0].gridPosition))
             actions.append(CrewMoveAction(idle_crewmates[1].id, my_ship.stations.shields[0].gridPosition))
-            emp_turrets = [turret for turret in station_list.turrets if turret.turretType is TurretType.EMP]
             normal_turret = [turret for turret in station_list.turrets if turret.turretType is TurretType.Normal]
-            #if emp_turrets:
-            #    actions.append(CrewMoveAction(idle_crewmates[2].id, emp_turrets[0].gridPosition))
             if normal_turret:
                 actions.append(CrewMoveAction(idle_crewmates[2].id, normal_turret[0].gridPosition))
             else:
