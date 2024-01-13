@@ -36,9 +36,19 @@ class Bot:
         
         station_list = my_ship.stations
 
-        # Find who's not doing anything and try to give them a job?
+        idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
         if self._first_turn:
+            self.other_ships_ids = [shipId for shipId in game_message.shipsPositions.keys() if shipId != team_id]
+            self.enemy_count = len(self.other_ships_ids)
+            self._target_id = self.other_ships_ids[0]
+            self._target_ship = game_message.shipsPositions[self.other_ships_ids[0]]
             self.crewmate_dispatcher(actions, my_ship)
+
+        if game_message.ships.get(self._target_id):
+            print(game_message.ships.get(self._target_id))
+            if game_message.ships.get(self._target_id).currentHealth <= 100:
+                self.set_new_target(game_message)
+
         self.turret_actions(game_message, my_ship, actions)
         self.helm_actions(actions, my_ship)
 
@@ -60,7 +70,7 @@ class Bot:
 
         operatedHelmStation = [station for station in my_ship.stations.helms if station.operator is not None]
 
-        boolRotate = True
+        boolRotate = False
         aiming_angle = 180
 
         if operatedHelmStation:
@@ -70,6 +80,7 @@ class Bot:
                         actions.append(ShipRotateAction(180))
                     elif aiming_angle <= 180:
                         actions.append(ShipRotateAction(-180))
+            actions.append(ShipLookAtAction(self._target_ship))
 
         
         if (ship_angle - self.last_angle) <= 1 and (ship_angle - self.last_angle) >= -1:
@@ -159,6 +170,7 @@ class Bot:
 
     def crewmate_dispatcher(self, actions, my_ship):
         wantedStations = ["turrets", "helms", "radars", "shields", "turrets", "turrets", "shields", "turrets"]
+        wantedStations = wantedStations[::-1]
         usedStations = []
         idle_crewmates = [crewmate for crewmate in my_ship.crew if crewmate.currentStation is None and crewmate.destination is None]
         for idle_crewmate in idle_crewmates:
